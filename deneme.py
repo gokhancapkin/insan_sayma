@@ -1,5 +1,4 @@
 ##İnsan Sayma
-##Cihan Çınar, Çağrı Ergin, Gökhan Çapkın
 import numpy as np
 import cv2
 import Person
@@ -16,7 +15,6 @@ cap = cv2.VideoCapture("test.mp4")
 ##cap.set(3,160) #Width
 ##cap.set(4,120) #Height
 
-#Imprime las propiedades de captura a consola
 for i in range(19):
     print (i, cap.get(i))
 
@@ -58,7 +56,6 @@ pts_L4 = pts_L4.reshape((-1,1,2))
 #Arkaplanı algılar
 fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows = True)
 
-#Elementos estructurantes para filtros morfoogicos
 kernelOp = np.ones((3,3),np.uint8) #3x3 matris tanımlar (8bitlik integer değerinde)
 kernelOp2 = np.ones((5,5),np.uint8)
 kernelCl = np.ones((11,11),np.uint8)
@@ -76,24 +73,22 @@ while(cap.isOpened()):
 ##    frame = image.array
 
     for i in persons:
-        i.age_one() #age every person one frame
+        i.age_one() 
     #################
     #   ÖN İŞLEME   #
     #################
     
-    #Aplica substraccion de fondo
     fgmask = fgbg.apply(frame)
     fgmask2 = fgbg.apply(frame)
 
-    #Binariazcion para eliminar sombras (color gris)
     try:
         ret,imBin= cv2.threshold(fgmask,200,255,cv2.THRESH_BINARY)
 	#th, dst = cv2.threshold(src, thresh, maxValue, cv2.THRESH_TRUNC)
         ret,imBin2 = cv2.threshold(fgmask2,200,255,cv2.THRESH_BINARY)
-        #Opening (erode->dilate) para quitar ruido.
+        
         mask = cv2.morphologyEx(imBin, cv2.MORPH_OPEN, kernelOp)
         mask2 = cv2.morphologyEx(imBin2, cv2.MORPH_OPEN, kernelOp2)
-        #Closing (dilate -> erode) para juntar regiones blancas.
+        
         mask =  cv2.morphologyEx(mask , cv2.MORPH_CLOSE, kernelCl)
         mask2 = cv2.morphologyEx(mask2, cv2.MORPH_CLOSE, kernelCl)
     except:
@@ -105,7 +100,6 @@ while(cap.isOpened()):
     #   KONTÜR   #
     ##############
     
-    # RETR_EXTERNAL returns only extreme outer flags. All child contours are left behind.
     _, contours0, hierarchy = cv2.findContours(mask2,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
     for cnt in contours0:
         area = cv2.contourArea(cnt)
@@ -113,8 +107,6 @@ while(cap.isOpened()):
             ##############
             #   TAKİP    #
             ##############
-            
-            #Falta agregar condiciones para multipersonas, salidas y entradas de pantalla.
             
             M = cv2.moments(cnt)
             cx = int(M['m10']/M['m00'])
@@ -127,7 +119,7 @@ while(cap.isOpened()):
                     if abs(cx-i.getX()) <= w and abs(cy-i.getY()) <= h:
                         # biri zaten daha önce tespit edilen nesne yakındır
                         new = False
-                        i.updateCoords(cx,cy)   #actualiza coordenadas en el objeto and resets age
+                        i.updateCoords(cx,cy)   
                         if i.going_UP(line_down,line_up) == True:
                             cnt_up += 1;
                             print ("ID:",i.getId(),'crossed going up at',time.strftime("%c"))
@@ -141,26 +133,18 @@ while(cap.isOpened()):
                         elif i.getDir() == 'up' and i.getY() < up_limit:
                             i.setDone()
                     if i.timedOut():
-                        #sacar i de la lista persons
                         index = persons.index(i)
                         persons.pop(index)
-                        del i     #liberar la memoria de i
+                        del i     
                 if new == True:
                     p = Person.MyPerson(pid,cx,cy, max_p_age)
                     persons.append(p)
                     pid += 1     
-            #################
-            #   DIBUJOS     #
-            #################
             cv2.circle(frame,(cx,cy), 5, (0,0,255), -1)
             img = cv2.rectangle(frame,(x,y),(x+w,y+h),(0,255,0),2)            
             #cv2.drawContours(frame, cnt, -1, (0,255,0), 3)
             
-    #END for cnt in contours0
             
-    #########################
-    # DIBUJAR TRAYECTORIAS  #
-    #########################
     for i in persons:
 ##        if len(i.getTracks()) >= 2:
 ##            pts = np.array(i.getTracks(), np.int32)
@@ -187,14 +171,10 @@ while(cap.isOpened()):
     cv2.imshow('Frame',frame)
     #cv2.imshow('Mask',mask)    
     
-    #preisonar ESC para salir
     k = cv2.waitKey(30) & 0xff
     if k == 27:
         break
 #END while(cap.isOpened())
     
-#################
-#   LIMPIEZA    #
-#################
 cap.release()
 cv2.destroyAllWindows()
